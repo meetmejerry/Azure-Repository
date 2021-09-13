@@ -29,17 +29,17 @@ namespace printName
             //get Telemetry Client Configuration
             telemetryClient = TelemetryFactory.GetTelemetryClient();
         
-    }
+        }
 
         [FunctionName(V)]
-        
+
         //this line means we are mentioning output bindings.
         //We pass the queue name and then the entity(queue) to bind
         //[return: ServiceBus("demoqueue", EntityType.Queue)]
-        public async Task<IActionResult> Run(
         //here we changed the return type to string as we are sending a message to the 
         //message queue.
         //public async Task<string> Run(
+        public async Task<IActionResult> Run(
             [HttpTrigger(AuthorizationLevel.Function, "get", "post", Route = null)] HttpRequest req,
             ILogger log)
         {
@@ -48,6 +48,7 @@ namespace printName
 
             string name = req.Query["name"];
             string type = req.Query["type"];
+            string count = req.Query["count"];
             //log.LogInformation("Initiating the send message to queue");
             //string queue_message = string.Empty;
 
@@ -56,6 +57,9 @@ namespace printName
             dynamic data = JsonConvert.DeserializeObject(requestBody);
             name = name ?? data?.name;
             type = type ?? data.type;
+            count = count ?? data.count;
+
+
             log.LogInformation("The name we received is "+name);
             log.LogInformation("The type we received is " + type);
             if (name.Equals("joel"))
@@ -82,7 +86,7 @@ namespace printName
             string connection_string = 
                 "Endpoint=sb://joelservicebus.servicebus.windows.net/;SharedAccessKeyName=RootManageSharedAccessKey;SharedAccessKey=BKpk29NbbFOC27yxFOfdfPJtjYqkZNuS+BijOl2+JOQ=";
 
-            int NumofMessages = 5;
+            int NumofMessages = Int32.Parse(count);
             switch (type)
             {
                 case "queue":
@@ -112,6 +116,7 @@ namespace printName
                         {
                             await queue_sender.SendMessagesAsync(queue_messageBatch);
                             Console.WriteLine($"A batch of {NumofMessages} messages has been published to the queue.");
+                            telemetryClient.TrackTrace($"A batch of {NumofMessages} messages has been published to the queue.");
                         }
                         finally
                         {
@@ -156,6 +161,7 @@ namespace printName
 
                             await topic_sender.SendMessagesAsync(topic_messageBatch);
                             Console.WriteLine($"A batch of {NumofMessages} messages has been published to the topic.");
+                            telemetryClient.TrackEvent($"A batch of {NumofMessages} messages has been published to the topic.");
                         }
                         finally
                         {
